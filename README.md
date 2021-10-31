@@ -35,22 +35,24 @@ This python script setups the V4L2 device, reads the h264 stream from it, adds s
    git clone http://www.github.com/mclendon99/fmp4streamer.git
    ```
 
-   - Set up the config file
+- Set up the config file
    ```
    cd fmp4streamer
    cp fmp4streamer.conf.dist fmp4streamer.conf
    ```
-   - Edit the fmp4streamer.conf file to point to your certificate/key if using HTTPS. (See below).
-   - Make any other changes as needed, e.g. port number or frame-rate...
+- Edit the fmp4streamer.conf file to point to your certificate/key if using HTTPS. (See below).
+- Make any other changes as needed, e.g. port number or frame-rate...
 
-   - Install the config file
+- Install the config file
    ```
    sudo mkdir /etc/fmp4streamer
    sudo cp fmp4streamer.conf /etc/fmp4streamer
    sudo cp fmp4streamer.py /etc/fmp4streamer
    sudo cp bmff.py /etc/fmp4streamer
+   sudo cp v4l2camera.py /etc/fmp4streamer
+   sudo cp v4l2.py /etc/fmp4streamer
    ```
-   - Install the system service
+- Install the system service
    ```
    sudo cp fmp4streamer.system-service /lib/systemd/system/fmp4streamer.service
    sudo chmod 0644 /lib/systemd/system/fmp4streamer.service
