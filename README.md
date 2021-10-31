@@ -14,7 +14,7 @@
 The fmp4streamer is a Python application designed to stream hardware encoded H.264 from a V4L2 Linux video device directly to a browser.
 
 # How does it work
-This python script setups the V4L2 device, reads the h264 stream from it, adds some fMP4 (fragmented MP4) header and serves it via HTTP. It works with only one html5 video tag, no js needed. It's pretty lightweight.
+This python script setups the V4L2 device, reads the h264 stream from it, adds some fMP4 (fragmented MP4) header and serves it via HTTP or HTTPS. It works with only one html5 video tag, no js needed. It's pretty lightweight.
 
 # Capabilities
 - Stream to multiple clients simultaneously (usually only limited by your network connection) 
@@ -22,6 +22,7 @@ This python script setups the V4L2 device, reads the h264 stream from it, adds s
 - Works in any Raspberry Pi with a camera module
 - Able to handle high framerate (60-90 fps) streams
 - Able to stream to iPhone and Safari via HLS.
+- Very low cpu utilization, even when streaming using SSL
 
 # Installation
    ```
@@ -29,6 +30,42 @@ This python script setups the V4L2 device, reads the h264 stream from it, adds s
    unzip v3.0.3.zip
    mv fmp4streamer-3.0.3 fmp4streamer
    ```
+# Installation as a system service
+   ```
+   git clone http://www.github.com/mclendon99/fmp4streamer.git
+   ```
+
+   - Set up the config file
+   ```
+   cd fmp4streamer
+   cp fmp4streamer.conf.dist fmp4streamer.conf
+   ```
+   - Edit the fmp4streamer.conf file to point to your certificate/key if using HTTPS. (See below).
+   - Make any other changes as needed, e.g. port number or frame-rate...
+
+   - Install the config file
+   ```
+   sudo mkdir /etc/fmp4streamer
+   sudo cp fmp4streamer.conf /etc/fmp4streamer
+   sudo cp fmp4streamer.py /etc/fmp4streamer
+   sudo cp bmff.py /etc/fmp4streamer
+   ```
+   - Install the system service
+   ```
+   sudo cp fmp4streamer.system-service /lib/systemd/system/fmp4streamer.service
+   sudo chmod 0644 /lib/systemd/system/fmp4streamer.service
+   ```
+
+   To use https, one must obtain a certificate from a registered domain.
+   GoDaddy has cheap domains and LetsEncrypt will issue a certificate
+   manually after installation of snap and letsencrypt, e.g. the following will manually issue a certificate:
+   ```
+   certbot certonly --authenticator dns-godaddy --dns-godaddy-propogation-seconds 600 --keep-until-expiring  --expand --server https://acme-v02.api.letencrypt.org/directory -d '.your-registered.domain' -d '*.your-registered.domain'
+   ```
+   and then put the challenge in the domain record per the instructions 
+   and your keys will appear in /etc/letsencrypt/live/your-registered.domain/
+
+   Point to the fullchain.pem certificate and the privkey.pem in the fmp4streamer.conf file.
 
 # Running 
 - from the terminal
@@ -36,7 +73,7 @@ This python script setups the V4L2 device, reads the h264 stream from it, adds s
     cd fmp4streamer
     python3 fmp4streamer.py
     ```
-- at startup
+- At startup. Now installed as a system service.
     ```
     cd fmp4streamer
     mkdir -p ~/.config/systemd/user
@@ -51,6 +88,22 @@ This python script setups the V4L2 device, reads the h264 stream from it, adds s
     systemctl --user status fmp4streamer
     journalctl --user-unit fmp4streamer
     ```
+
+# Running as a system service (one time only)
+    ```
+    sudo systemctl daemon-reload
+    sudo systemctl enable fmp4streamer.service
+    sudo systemctl start fmp4streamer.service
+    ```
+
+    Watch the logs
+    ```
+    dmesg
+    systemctl status fmp4streamer
+    journalctl --system-unit fmp4streamer
+    ```
+
+
 
 # Viewing
 When fmp4streamer.py is running the stream can be viewed from any browser via the following url. **_ip_address_** is the ip address or hostname of your computer, and **_port_** (default: 8000) is the port you set in the configuration section.

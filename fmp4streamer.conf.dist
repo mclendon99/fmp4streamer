@@ -1,10 +1,12 @@
 [server]
 listen =
 port = 8000
+keyfile =
+certfile =
 [/dev/video0]
 width = 800
 height = 600
-fps = 30
+fps = 15
 # you can set any V4L2 control too, list them with the -l option
 h264_profile = High
 h264_level = 4.2

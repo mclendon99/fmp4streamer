@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.4] - 2021-10-31
+### Added
+- HTTPS/SSL streaming
+- Instructions for deployment as a system service (required to access the private key).
+- Made fmp4streamer.py "know" that it runs python3 and made it executable
+### Fixed
+- Spelling error in warning "using deeault config"
+
 ## [3.0.3] - 2021-10-25
 ### Fixed
 - Eliminate the rounding errors in sampleduration calculation

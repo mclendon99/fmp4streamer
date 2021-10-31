@@ -1,0 +1,10 @@
+[Unit]
+Description=fmp4streamer
+After=network.target
+[Service]
+ExecStart=python3 /etc/fmp4streamer/fmp4streamer.py
+Restart=always
+Environment=PATH=/usr/bin:/usr/local/bin:/bin
+WorkingDirectory=/etc/fmp4streamer
+[Install]
+WantedBy=default.target

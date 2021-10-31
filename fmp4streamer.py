@@ -1,4 +1,5 @@
-import io, socketserver, logging, configparser, getopt, sys
+#! /usr/bin/python3
+import io, socketserver, logging, configparser, getopt, sys, ssl
 from threading import Thread
 from http import server
 from time import time
@@ -198,7 +199,7 @@ class Config(configparser.ConfigParser):
         self.read_dict({'server': {'listen': '', 'port': 8000}})
 
         if len(self.read(configfile)) == 0:
-            logging.warning(f'Couldn\'t read {configfile}, using deault config')
+            logging.warning(f'Couldn\'t read {configfile}, using default config')
 
         if len(self.sections()) == 1:
             self.add_section('/dev/video0')
@@ -238,6 +239,12 @@ class Config(configparser.ConfigParser):
         codec = 'avc1.' + profiles.get(self.h264_profile(), '6400') + levels.get(self.h264_level(), '28')
         return codec
 
+    def keyfile(self):
+        return self[self.device].get('keyfile','');
+
+    def certfile(self):
+        return self[self.device].get('certfile','');
+
 def usage():
     print(f'usage: python3 {sys.argv[0]} [--help] [--list-controls] [--config CONFIG]\n')
     print(f'optional arguments:')
@@ -276,6 +283,9 @@ cameraThread = V4L2CameraThread(camera)
 cameraThread.start()
 
 server = StreamingServer((config.get('server', 'listen'), config.getint('server', 'port')), StreamingHandler)
+if len(config.get('server', 'keyfile')) != 0 and len(config.get('server', 'certfile')) != 0 :
+    server.socket = ssl.wrap_socket(server.socket, \
+        config.get('server', 'keyfile'), config.get('server', 'certfile'), server_side=True)
 server.start()
 cameraThread.stop()
 cameraThread.join()
