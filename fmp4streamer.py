@@ -271,7 +271,7 @@ except getopt.error as err:
 
 list_controls = False
 configfile = "fmp4streamer.conf"
-loglevel = "warning"
+loglevel = "warn"
 
 for current_argument, current_value in arguments:
     if current_argument in ('-h', '--help'):
@@ -284,10 +284,14 @@ for current_argument, current_value in arguments:
     elif current_argument in ("-g", "--log-level"):
         loglevel = current_value
 
-numeric_level = getattr(logging, loglevel.upper(), null)
+numeric_level = getattr(logging, loglevel.upper(), f'Invalid log level {loglevel}')
 if not isinstance(numeric_level, int):
-    raise ValueError('Invalid log level: %s' % loglevel)
+    logging.warning(f'Invalid log level:{loglevel}')
+    numeric_level = getattr(logging, "WARNING");
+
+logging.warning(f'Using log level:{numeric_level}')
 logging.basicConfig(level=numeric_level)
+
 config = Config(configfile)
 device = config.get_device()
 
