@@ -108,10 +108,12 @@ class MP4Writer:
 
         self.seq += 1
         self.decodetime += sampleduration
+        logging.debug(f'write frame - duration: {sampleduraction}')
 
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
+        logging.debug(f'Streaming handler received:{self.path}')
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')
@@ -151,6 +153,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 mp4_writer = MP4Writer(self.wfile, config.width(), config.height(), config.timescale(), camera.sps, camera.pps)
+                logging.info(f'Request key frame')
                 camera.request_key_frame()
                 while True:
                     with camera.condition:
@@ -162,6 +165,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.log_message(f'Removed streaming client {self.client_address} {str(e)}')
         else:
+            logging.info(f'Received invalid HTTP request')
             self.send_error(404)
             self.end_headers()
 
@@ -171,10 +175,12 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
     def start(self):
         try:
+            logging.info(f'Starting streaming server')
             self.serve_forever()
         except KeyboardInterrupt:
             pass
         finally:
+            logging.info(f'Closing streaming server')
             self.server_close()
 
 
@@ -184,9 +190,11 @@ class V4L2CameraThread(Thread):
         self.camera = camera
 
     def run(self):
+        logging.info(f'Starting camera')
         self.camera.start_capturing()
 
     def stop(self):
+        logging.info(f'Stopping camera')
         self.camera.stop_capturing()
 
 class Config(configparser.ConfigParser):
@@ -196,7 +204,7 @@ class Config(configparser.ConfigParser):
             'height': 600,
             'fps': 30,
         })
-        self.read_dict({'server': {'listen': '', 'port': 8000}})
+        self.read_dict({'server': {'listen': '', 'port': 8080}})
 
         if len(self.read(configfile)) == 0:
             logging.warning(f'Couldn\'t read {configfile}, using default config')
@@ -240,10 +248,10 @@ class Config(configparser.ConfigParser):
         return codec
 
     def keyfile(self):
-        return self[self.device].get('keyfile','');
+        return self[self.device].get('keyfile',None)
 
     def certfile(self):
-        return self[self.device].get('certfile','');
+        return self[self.device].get('certfile',None)
 
 def usage():
     print(f'usage: python3 {sys.argv[0]} [--help] [--list-controls] [--config CONFIG]\n')
@@ -254,14 +262,16 @@ def usage():
 
 
 try:
-    arguments, values = getopt.getopt(sys.argv[1:], "hlc:", ["help", "list-controls","config="])
+    arguments, values = getopt.getopt(sys.argv[1:], "hlcg:", ["help", "list-controls","config=", "log-level="])
 except getopt.error as err:
     print(err)
     usage()
     sys.exit(2)
 
+
 list_controls = False
 configfile = "fmp4streamer.conf"
+loglevel = "warning"
 
 for current_argument, current_value in arguments:
     if current_argument in ('-h', '--help'):
@@ -271,21 +281,30 @@ for current_argument, current_value in arguments:
         list_controls = True
     elif current_argument in ("-c", "--config"):
         configfile = current_value
+    elif current_argument in ("-g", "--log-level"):
+        loglevel = current_value
 
+numeric_level = getattr(logging, loglevel.upper(), null)
+if not isinstance(numeric_level, int):
+    raise ValueError('Invalid log level: %s' % loglevel)
+logging.basicConfig(level=numeric_level)
 config = Config(configfile)
 device = config.get_device()
 
-camera = V4L2Camera(device, dict(config.items(device)))
 if list_controls:
     camera.print_ctrls()
     sys.exit(0)
+
+camera = V4L2Camera(device, dict(config.items(device)))
 cameraThread = V4L2CameraThread(camera)
 cameraThread.start()
 
 server = StreamingServer((config.get('server', 'listen'), config.getint('server', 'port')), StreamingHandler)
-if len(config.get('server', 'keyfile')) != 0 and len(config.get('server', 'certfile')) != 0 :
-    server.socket = ssl.wrap_socket(server.socket, \
-        config.get('server', 'keyfile'), config.get('server', 'certfile'), server_side=True)
+keyfile = config.get('server', 'keyfile', fallback=None);
+certfile = config.get('server', 'certfile', fallback=None);
+# Use SSL
+if keyfile is not None and certfile is not None :
+    server.socket = ssl.wrap_socket(server.socket, keyfile, certfile, server_side=True)
 server.start()
 cameraThread.stop()
 cameraThread.join()
