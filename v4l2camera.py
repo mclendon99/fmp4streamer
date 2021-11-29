@@ -4,7 +4,6 @@ import mmap, os, struct, logging
 
 import v4l2
 
-
 class H264NALU:
     DELIMITER = b'\x00\x00\x00\x01'
 
@@ -43,18 +42,20 @@ class V4L2Camera(object):
         fmt = v4l2.v4l2_format()
         
         ioctl(self.fd, v4l2.VIDIOC_QUERYCAP, cap)
+        logging.warning(f'Capabilities reported:{cap.capabilities:08x}')
         
         if not (cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE):
-            raise Exception(f'{self.device} is not a video capture device')
+            raise Exception(f'{self.device} is not a video capture device: {v4l2.V4L2_CAP_VIDEO_CAPTURE:08x}')
         
         if not (cap.capabilities & v4l2.V4L2_CAP_STREAMING):
-            raise Exception(f'{self.device} does not support streaming i/o')
+            raise Exception(f'{self.device} does not support streaming i/o: {v4l2.V4L2_CAP_STREAMING:08x}')
 
         fmt.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
         fmt.fmt.pix.width = width
         fmt.fmt.pix.height = height
         fmt.fmt.pix.pixelformat = v4l2.V4L2_PIX_FMT_H264
         fmt.fmt.pix.field = v4l2.V4L2_FIELD_ANY
+        logging.warning(f'Requesting format - h:{fmt.fmt.pix.height} w:{fmt.fmt.pix.width} fmt:{fmt.fmt.pix.pixelformat:08x}')
         ioctl(self.fd, v4l2.VIDIOC_S_FMT, fmt)
 
     def init_fps(self, fps):

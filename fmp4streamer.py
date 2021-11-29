@@ -295,11 +295,11 @@ logging.basicConfig(level=numeric_level)
 config = Config(configfile)
 device = config.get_device()
 
+camera = V4L2Camera(device, dict(config.items(device)))
 if list_controls:
     camera.print_ctrls()
     sys.exit(0)
 
-camera = V4L2Camera(device, dict(config.items(device)))
 cameraThread = V4L2CameraThread(camera)
 cameraThread.start()
 
